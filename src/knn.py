@@ -61,7 +61,7 @@ def mapTweet(tweet,sentiWordnet,emoDict,unigram,slangs):
     out.append(float(line.count('?')/140))
     out.append(float(features.freqCapital(line)))
     for w in unigram:  # unigram
-            if (w in line):
+            if (w in line.split()):
                 out.append(float(1))
             else:
                 out.append(float(0))

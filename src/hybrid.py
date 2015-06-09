@@ -63,7 +63,7 @@ def mapTweet(tweet,sentiWordnet,emoDict,unigram,slangs):
     out.append(float(line.count('?')/140))
     out.append(float(features.freqCapital(line)))
     for w in unigram:  # unigram
-            if (w in line):
+            if (w in line.split()):
                 out.append(float(1))
             else:
                 out.append(float(0))
@@ -312,8 +312,8 @@ def buildHybrid(X,Y,n,knel,c): # n for neighbors, knel for kernel function
 
 # loading training data
 print "Loading training data"
-#X,Y=loadMatrix('../data/positive_processed.csv','../data/neutral_processed.csv','../data/negative_processed.csv','4','2','0')
-X,Y=loadMatrix('../data/small_positive_processed.csv','../data/small_neutral_processed.csv','../data/small_negative_processed.csv','4','2','0')
+X,Y=loadMatrix('../data/positive_processed.csv','../data/neutral_processed.csv','../data/negative_processed.csv','4','2','0')
+#X,Y=loadMatrix('../data/small_positive_processed.csv','../data/small_neutral_processed.csv','../data/small_negative_processed.csv','4','2','0')
 
 # features standardization 
 X_scaled=pr.scale(np.array(X))
@@ -339,8 +339,8 @@ KNN_MODEL,SVM_MODEL,s1,n1,s2,n2=buildHybrid(X,Y,N_NEIGHBORS,KERNEL_FUNCTION,C_PA
 
 # test dataset classification, uncomment the next line to perform the test 
 print "Testing model with test dataset ..."
-#testFile('../data/test_dataset.csv',KNN_MODEL,SVM_MODEL)
-testFile('../data/small_test_dataset.csv',KNN_MODEL,SVM_MODEL)
+testFile('../data/test_dataset.csv',KNN_MODEL,SVM_MODEL)
+#testFile('../data/small_test_dataset.csv',KNN_MODEL,SVM_MODEL)
 
 print "Model Built . Want to classify a tweet ? ..."
 
