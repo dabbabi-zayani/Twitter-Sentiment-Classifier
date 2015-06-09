@@ -11,4 +11,4 @@ Emoticons dictionnary, Stop Words list, SentiWordnet 3.0.1  and a slang dictionn
 Training and testing datasets are in the data folder.  <br />
 Tha training dataset is collected SemEval challenge ( http://alt.qcri.org/semeval2014/task9/index.php?id=data-and-tools ) and the testing dataset is from STS-Gold (http://cs.stanford.edu/people/alecmgo/trainingandtestdata.zip)
 <br />
-Thank you :) <br />
+Comments are appreciated . Thank you .  <br />
