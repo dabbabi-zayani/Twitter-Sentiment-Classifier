@@ -2,6 +2,26 @@
 # e.g : emoticons score, POS tags counts ...
 from __future__ import division
 import re
+
+def scoreUnigram(tweet,posuni,neguni,neuuni):
+    pos=0
+    neg=0
+    neu=0
+    l=len(tweet.split())
+
+    for w in tweet.split():
+        if w in posuni:
+            pos+=1
+        if w in neguni:
+            neg+=1
+        if w in neuuni:
+            neu+=1
+    if (l!=0) :
+        pos=pos/l
+        neg=neg/l
+        neu=neu/l
+    return [pos,neg,neu]
+
 # emoticons scores by category , change weighting if needed
 def createEmoticonDictionary(filename):
     emo_scores = {'Positive': 0.5, 'Extremely-Positive': 1.0, 'Negative':-0.5,'Extremely-Negative': -1.0,'Neutral': 0.0}

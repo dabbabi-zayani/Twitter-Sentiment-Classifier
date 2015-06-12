@@ -27,45 +27,43 @@ sentiWordnet=polarity.loadSentiWordnet('../resources/sentiWordnetBig.csv')
 emoticonDict=features.createEmoticonDictionary("../resources/emoticon.txt")
 
 print "Bulding Bag of words ..."
-positive=ngramGenerator.mostFreqList('../data/positive_processed.csv',1000)
-negative=ngramGenerator.mostFreqList('../data/negative_processed.csv',1000)
-neutral=ngramGenerator.mostFreqList('../data/neutral_processed.csv',1000)
+positive=ngramGenerator.mostFreqList('../data/positive_processed.csv',100)
+negative=ngramGenerator.mostFreqList('../data/negative_processed.csv',100)
+neutral=ngramGenerator.mostFreqList('../data/neutral_processed.csv',100)
 
 
-for w in positive:
-    if w in negative+neutral : 
-        positive.remove(w)
-
-for w in negative:
-    if w in positive+neutral : 
-        negative.remove(w)
-
-for w in neutral:
-    if w in negative+positive : 
-        neutral.remove(w)
-
-
+total=positive+negative+neutral
+total=positive+negative+neutral # total unigram vector
+for w in total:
+    count=total.count(w)
+    if (count > 1):
+        while (count>0):
+            count=count-1
+            total.remove(w)
 
 #print len(total)
  
-def mapTweet(tweet,sentiWordnet,emoDict,positive,negative,neutral,slangs):
+def mapTweet(tweet,sentiWordnet,emoDict,unigram,slangs):
     out=[]
     line=preprocessing.processTweet(tweet,stopWords,slangs)
    
     p=polarity.posPolarity(line,sentiWordnet)
     out.extend([p[0],p[1],p[2]]) # aggregate polsarity pos - negative
-#    out.extend(p[7:]) # frequencies of pos 
+    out.extend(p[7:]) # frequencies of pos 
     out.append(float(features.emoticonScore(line,emoDict))) # emo aggregate score be careful to modify weights
-#    out.append(float(len(features.hashtagWords(line))/40)) # number of hashtagged words
-#    out.append(float(len(line)/140)) # for the length
-#    out.append(float(features.upperCase(line))) # uppercase existence : 0 or 1
-#    out.append(float(features.exclamationTest(line)))
-#    out.append(float(line.count("!")/140))
-#    out.append(float((features.questionTest(line))))
-#    out.append(float(line.count('?')/140))
-#    out.append(float(features.freqCapital(line)))
-    u=features.scoreUnigram(tweet,positive,negative,neutral)
-    out.extend(u)
+    out.append(float(len(features.hashtagWords(line))/40)) # number of hashtagged words
+    out.append(float(len(line)/140)) # for the length
+    out.append(float(features.upperCase(line))) # uppercase existence : 0 or 1
+    out.append(float(features.exclamationTest(line)))
+    out.append(float(line.count("!")/140))
+    out.append(float((features.questionTest(line))))
+    out.append(float(line.count('?')/140))
+    out.append(float(features.freqCapital(line)))
+    for w in unigram:  # unigram
+            if (w in line.split()):
+                out.append(float(1))
+            else:
+                out.append(float(0))
     return out
 # load matrix
 def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
@@ -78,33 +76,33 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
     line=f.readline()
     while line:
         kpos=kpos+1
-        z=mapTweet(line,sentiWordnet,emoticonDict,positive,negative,neutral,slangs)
+        z=mapTweet(line,sentiWordnet,emoticonDict,total,slangs)
         vectors.append(z)
         labels.append(float(poslabel))
         line=f.readline()
-        print str(kpos)+"positive lines loaded : "+str(z)
+        print str(kpos)+"positive lines loaded : "
     f.close()
     
     f=open(neufilename,'r')
     line=f.readline()
     while line:
         kneu=kneu+1
-        z=mapTweet(line,sentiWordnet,emoticonDict,positive,negative,neutral,slangs)
+        z=mapTweet(line,sentiWordnet,emoticonDict,total,slangs)
         vectors.append(z)
         labels.append(float(neulabel))
         line=f.readline()
-        print str(kneu)+"neutral lines loaded : "+str(z)
+        print str(kneu)+"neutral lines loaded"
     f.close()
     
     f=open(negfilename,'r')
     line=f.readline()
     while line:
         kneg=kneg+1
-        z=mapTweet(line,sentiWordnet,emoticonDict,positive,negative,neutral,slangs)
+        z=mapTweet(line,sentiWordnet,emoticonDict,total,slangs)
         vectors.append(z)
         labels.append(float(neglabel))
         line=f.readline()
-        print str(kneg)+"negative lines loaded : "+str(z)
+        print str(kneg)+"negative lines loaded"
     f.close()
     return vectors,labels
 
@@ -116,7 +114,11 @@ def trainModel(X,Y,knel,c): # relaxation parameter
     return clf
 
 def predict(tweet,model): # test a tweet against a built model 
-    z=mapTweet(tweet,sentiWordnet,emoticonDict,positive,negative,neutral,slangs) # mapping
+    z=mapTweet(tweet,sentiWordnet,emoticonDict,total,slangs) # mapping
+    #z_scaled=scaler.transform(z)
+    #z=normalizer.transform([z_scaled])
+    #z=selector.transform(z) # feature selection
+    #z=z[0].tolist()
     return model.predict([z]).tolist() # transform nympy array to list 
 
 def predictFile(filename,svm_model): # function to load test file in the csv format : sentiment,tweet 
@@ -145,7 +147,7 @@ def loadTest(filename): # function to load test file in the csv format : sentime
         s=float(l[0][1:])
         tweet=l[5][:-1]
 
-        z=mapTweet(tweet,sentiWordnet,emoticonDict,positive,negative,neutral,slangs)
+        z=mapTweet(tweet,sentiWordnet,emoticonDict,total,slangs)
         vectors.append(z)
         labels.append(s)
         line=f.readline()
@@ -173,11 +175,29 @@ print "Loading training data"
 X,Y=loadMatrix('../data/positive_processed.csv','../data/neutral_processed.csv','../data/negative_processed.csv','4','2','0')
 #X,Y=loadMatrix('../data/small_positive_processed.csv','../data/small_neutral_processed.csv','../data/small_negative_processed.csv','4','2','0')
 
+# features standardization 
+#X_scaled=pr.scale(np.array(X))
+#scaler = pr.StandardScaler().fit(X) # to use later for testing data scaler.transform(X) 
+
+# features Normalization
+#X_normalized = pr.normalize(X_scaled, norm='l2') # l2 norm
+#normalizer = pr.Normalizer().fit(X_scaled)  # as before normalizer.transform([[-1.,  1., 0.]]) for test
+
+#X=X_normalized
+#X=X.tolist()
+
+# Univariate feature selection with F-test for feature scoring
+# We use the default selection function: the 10% most significant features
+#selector = SelectKBest(f_classif, k=500)
+#selector = SelectKBest(f_classif, k=300)
+#selector.fit(X, Y) # (selector.transform(X) for test 
+
+
 # 5 fold cross validation
 x=np.array(X)
 y=np.array(Y)
 KERNEL_FUNCTIONS=['linear','poly']
-C=[0.005*i for i in range(1,20)]
+C=[0.1*i for i in range(2,10)]
 ACC=0.0
 iter=0
 
@@ -185,12 +205,14 @@ for knel in KERNEL_FUNCTIONS:
     for c in C:
 
         clf = svm.SVC(kernel=KERNEL_FUNCTION, C=c)
+        #scores = cross_validation.cross_val_score(clf, selector.transform(x), y, cv=5)
         scores = cross_validation.cross_val_score(clf, x, y, cv=5)
+
         if (scores.mean() > ACC):
             ACC=scores.mean()
             KERNEL_FUNCTION=knel
             C_PARAMETER=c
-        iter=iter+1
+            iter=iter+1
         print "iteration "+str(iter)+" : c parameter : "+str(c)+", kernel : "+str(knel)
         #print scores # the precision for five iterations
         print("Accuracy of the model using 5 fold cross validation : %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))# Actual testing 
@@ -199,7 +221,9 @@ print "best knel : "+KERNEL_FUNCTION
 
 
 print "Training model with optimized parameters"
+#MODEL=trainModel(selector.transform(X),Y,KERNEL_FUNCTION,C_PARAMETER) 
 MODEL=trainModel(X,Y,KERNEL_FUNCTION,C_PARAMETER) 
+
 print "Training done !"
  
 
@@ -208,6 +232,7 @@ print "Loading test data..."
 V,L=loadTest('../data/test_dataset.csv')
 #V,L=loadTest('../data/small_test_dataset.csv')
 
+#print "Classification done : Performance over test dataset : "+str(testModel(selector.transform(V),L,MODEL))
 print "Classification done : Performance over test dataset : "+str(testModel(V,L,MODEL))
 
 user_input=raw_input("Write a tweet to test or a file path for bulk classification with svm model. press q to quit\n")
