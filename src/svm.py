@@ -54,16 +54,16 @@ def mapTweet(tweet,sentiWordnet,emoDict,positive,negative,neutral,slangs):
    
     p=polarity.posPolarity(line,sentiWordnet)
     out.extend([p[0],p[1],p[2]]) # aggregate polsarity pos - negative
-#    out.extend(p[7:]) # frequencies of pos 
+    out.extend(p[7:]) # frequencies of pos 
     out.append(float(features.emoticonScore(line,emoDict))) # emo aggregate score be careful to modify weights
-#    out.append(float(len(features.hashtagWords(line))/40)) # number of hashtagged words
-#    out.append(float(len(line)/140)) # for the length
-#    out.append(float(features.upperCase(line))) # uppercase existence : 0 or 1
-#    out.append(float(features.exclamationTest(line)))
-#    out.append(float(line.count("!")/140))
-#    out.append(float((features.questionTest(line))))
-#    out.append(float(line.count('?')/140))
-#    out.append(float(features.freqCapital(line)))
+    out.append(float(len(features.hashtagWords(line))/40)) # number of hashtagged words
+    out.append(float(len(line)/140)) # for the length
+    out.append(float(features.upperCase(line))) # uppercase existence : 0 or 1
+    out.append(float(features.exclamationTest(line)))
+    out.append(float(line.count("!")/140))
+    out.append(float((features.questionTest(line))))
+    out.append(float(line.count('?')/140))
+    out.append(float(features.freqCapital(line)))
     u=features.scoreUnigram(tweet,positive,negative,neutral)
     out.extend(u)
     return out
@@ -170,7 +170,7 @@ def testModel(vectors,labels,model): # for a given set of labelled vectors calcu
 
 # loading training data
 print "Loading training data"
-X,Y=loadMatrix('../data/positive_processed.csv','../data/neutral_processed.csv','../data/negative_processed.csv','4','2','0')
+X,Y=loadMatrix('../data/used/positive_processed.csv','../data/used/neutral_processed.csv','../data/used/negative_processed.csv','4','2','0')
 #X,Y=loadMatrix('../data/small_positive_processed.csv','../data/small_neutral_processed.csv','../data/small_negative_processed.csv','4','2','0')
 
 # 5 fold cross validation

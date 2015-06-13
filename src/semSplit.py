@@ -2,7 +2,7 @@ import preprocessing
 stopWords = preprocessing.getStopWordList('../resources/stopWords.txt')
 slangs = preprocessing.loadSlangs('../resources/internetSlangs.txt')
 
-f=open('../data/sev/positive.tsv','r')
+f=open('../data/sem/positive.tsv','r')
 fo=open('../data/positive_processed.csv','w')
 
 line=f.readline()
@@ -21,7 +21,7 @@ fo.close()
 
 print "positive samples processed"
 
-f=open('../data/sev/negative.tsv','r')
+f=open('../data/sem/negative.tsv','r')
 fo=open('../data/negative_processed.csv','w')
 line=f.readline()
 while line:
@@ -37,7 +37,7 @@ fo.close()
 
 print "negative sample processed"
 
-f=open('../data/sev/neutral.tsv','r')
+f=open('../data/sem/neutral.tsv','r')
 fo=open('../data/neutral_processed.csv','w')
 line=f.readline()
 while line:
