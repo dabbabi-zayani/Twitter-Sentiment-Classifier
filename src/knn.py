@@ -3,6 +3,7 @@ from __future__ import division
 from sklearn import neighbors
 from sklearn import cross_validation
 from sklearn import preprocessing as pr
+from sklearn import metrics
 
 
 
@@ -206,24 +207,11 @@ def predictFile(filename,knn_model): # function to load test file in the csv for
 def testModel(vectors,labels,model): # for a given set of labelled vectors calculate model labels and give accuract
     a=0 # wrong classified vectors
     newLabels=model.predict(vectors).tolist()
-    mispos=0
-    misneg=0
-    misneu=0
-    for i in range(0,len(newLabels)):
-        if labels[i] == 4.0 and newLabels[i]!=labels[i]:
-            mispos+=1
-        if labels[i] == 2.0 and newLabels[i]!=labels[i]:
-            misneu+=1
-        if labels[i] == 0.0 and newLabels[i]!=labels[i]:
-            misneg+=1
+    acc=metrics.accuracy_score(labels,newLabels)
+    pre=metrics.precision_score(labels,newLabels)
+    print "average accuracy over test dataset : %.2f" %(acc)
+    print "average precision over test dataset : %.2f" %(pre)
 
-        if newLabels[i]!=labels[i]:
-            a=a+1
-    print "mispos : %d, misneu : %d, misneg : %d" %(mispos,misneu,misneg)
-    if len(labels)==0:
-        return 0.0
-    else:
-        return 1-a/len(labels) # from future import dividion
 
 
 # loading training data
@@ -252,15 +240,19 @@ y=np.array(Y)
 
 N_NEIGHBORS=1
 ACC=0.0
+PR=0.0
 iter=0
-for k in range(10,16):
+for k in range(1,11):
     iter=iter+1
     clf = neighbors.KNeighborsClassifier(k)
-    scores = cross_validation.cross_val_score(clf, x, y, cv=5)
+    scores = cross_validation.cross_val_score(clf, x, y, cv=5,scoring='accuracy')
+    precisions=cross_validation.cross_val_score(clf, x, y, cv=5,scoring='precision')
     print "Iter : "+str(iter)+" :"
-    print("Accuracy of the model using 5 fold cross validation : %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))# Actual testing 
-    if (scores.mean()>ACC):
+    print("Accuracy of the model using 5 fold cross validation : %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))# Actual testing
+    print("Precision of the model using 5 fold cross validation : %0.2f (+/- %0.2f)" % (precisions.mean(), precisions.std() * 2))# Actual testing 
+    if (scores.mean()>ACC and precisions.mean() > PR):
         ACC=scores.mean()
+        PR=precisions.mean()
         N_NEIGHBORS=k
 
 # cross validation 
@@ -279,8 +271,8 @@ print "Model Built . Testing ..."
 V,L=loadTest('../data/test_dataset.csv')
 #V,L=loadTest('../data/small_test_dataset.csv')
 
-print "Classification done : Performance over test dataset : "+str(testModel(V,L,MODEL))
-
+print "Classification done : Performance over test dataset : "
+testModel(V,L,MODEL)
 
 user_input=raw_input("Write a tweet to test or a file path for bulk classification with knn model. press q to quit\n")
 while user_input!='q':
