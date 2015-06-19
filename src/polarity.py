@@ -172,6 +172,7 @@ def posPolarity(tweet,sentDict): # polarity aggregate of a tweet from sentiWordn
     else:
         return [pos/n_words,neg/n_words,neu/n_words,posScores['a']/n_words,posScores['n']/n_words,posScores['v']/n_words,posScores['r']/n_words,posNumber['a']/n_words,posNumber['n']/n_words,posNumber['v']/n_words,posNumber['r']/n_words] # do not use the neutral scoore it will fuck up evertg
 
+
 def posFreq(tweet,dict): # calculates the frequency of apperances of pos in a tweet
     result={}
     result['v']=0
@@ -189,4 +190,30 @@ def posFreq(tweet,dict): # calculates the frequency of apperances of pos in a tw
         result['n']=result['n']/nbr
         result['r']=result['r']/nbr
     return result
+
+def loadAfinn(filename):
+    f=open(filename,'r')
+    afinn={}
+    line=f.readline()
+    nbr=0
+    while line:
+        nbr+=1
+#        print "%d lines loaderd from afinn" % (nbr)
+        l=line[:-1].split('\t')
+        afinn[l[0]]=float(l[1])/4 # Normalizing 
+        line=f.readline()
+
+    return afinn
+
+def afinnPolarity(tweet,afinn):
+    p=0.0
+    nbr=0
+    for w in tweet.split():
+        if w in afinn.keys():
+            nbr+=1
+            p+=afinn[w]
+    if (nbr != 0):
+        return p/nbr
+    else:
+        return 0.0
 

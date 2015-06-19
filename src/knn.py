@@ -4,7 +4,6 @@ from sklearn import neighbors
 from sklearn import cross_validation
 from sklearn import preprocessing as pr
 
-from sklearn.feature_selection import SelectKBest, f_classif # for features selection
 
 
 import numpy as np
@@ -25,7 +24,7 @@ slangs = preprocessing.loadSlangs('../resources/internetSlangs.txt')
 sentiWordnet=polarity.loadSentiWordnet('../resources/sentiWordnetBig.csv')
 emoticonDict=features.createEmoticonDictionary("../resources/emoticon.txt")
 
-print "Bulding 150 unigram vector"
+print "Bulding unigram vector"
 positive=ngramGenerator.mostFreqList('../data/positive_processed.csv',1000)
 negative=ngramGenerator.mostFreqList('../data/negative_processed.csv',1000)
 neutral=ngramGenerator.mostFreqList('../data/neutral_processed.csv',1000)
@@ -178,6 +177,9 @@ def loadTest(filename): # function to load test file in the csv format : sentime
         tweet=l[5][:-1]
 
         z=mapTweet(tweet,sentiWordnet,emoticonDict,total,slangs)
+        z_scaled=scaler.transform(z)
+        z=normalizer.transform([z_scaled])
+        z=z[0].tolist()
         vectors.append(z)
         labels.append(s)
         line=f.readline()
@@ -185,8 +187,7 @@ def loadTest(filename): # function to load test file in the csv format : sentime
     f.close()
     return vectors,labels
 
-def batchPredict(vectors,model): # the output is a numpy array of labels
-    return model.predict(vectors).tolist()
+
 
 #def predictFile
 def predictFile(filename,knn_model): # function to load test file in the csv format
@@ -234,8 +235,7 @@ X=X_normalized
 X=X.tolist()
 
 # features selection 
-selector = SelectKBest(f_classif, k=1000)
-selector.fit(X, Y) # (selector.transform(X) for test
+
 
     
 # 5 fold cross validation
@@ -245,10 +245,10 @@ y=np.array(Y)
 N_NEIGHBORS=1
 ACC=0.0
 iter=0
-for k in range(30,50):
+for k in range(1,10):
     iter=iter+1
     clf = neighbors.KNeighborsClassifier(k)
-    scores = cross_validation.cross_val_score(clf, selector.transform(x), y, cv=5)
+    scores = cross_validation.cross_val_score(clf, x, y, cv=5)
     print "Iter : "+str(iter)+" :"
     print("Accuracy of the model using 5 fold cross validation : %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))# Actual testing 
     if (scores.mean()>ACC):
@@ -258,20 +258,20 @@ for k in range(30,50):
 # cross validation 
 #N_NEIGHBORS=10
 clf = neighbors.KNeighborsClassifier(N_NEIGHBORS)
-scores = cross_validation.cross_val_score(clf, selector.transform(x), y, cv=5)
+scores = cross_validation.cross_val_score(clf, x, y, cv=5)
 print("Accuracy of the model using 5 fold cross validation : %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))# Actual testing 
 print "n chosen : "+str(N_NEIGHBORS)
 
 # Actual testing 
 print "Building model"
-MODEL=trainModel(selector.transform(X),Y,N_NEIGHBORS) # 3nn
+MODEL=trainModel(X,Y,N_NEIGHBORS) # 3nn
 
 print "Model Built . Testing ..."
 # uncomment to see performance over test data set
 #V,L=loadTest('../data/test_dataset.csv')
 V,L=loadTest('../data/small_test_dataset.csv')
 
-print "Classification done : Performance over test dataset : "+str(testModel(selector.transform(V),L,MODEL))
+print "Classification done : Performance over test dataset : "+str(testModel(V,L,MODEL))
 
 
 user_input=raw_input("Write a tweet to test or a file path for bulk classification with knn model. press q to quit\n")

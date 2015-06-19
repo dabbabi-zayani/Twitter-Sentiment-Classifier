@@ -217,6 +217,7 @@ def testFile(filename,knn_model,svm_model): # function to load test file in the 
         line=f.readline()
     if (len(labels) != 0):
         p=p/len(labels)
+        p=1-p
     f.close()
     fo.close()
     print "Tweets in test file are classified . The result is in "+filename+".result"
