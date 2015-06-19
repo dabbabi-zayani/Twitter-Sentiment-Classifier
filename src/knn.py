@@ -20,14 +20,14 @@ import preprocessing
 print "Initializing dictionnaries"
 stopWords = preprocessing.getStopWordList('../resources/stopWords.txt')
 slangs = preprocessing.loadSlangs('../resources/internetSlangs.txt')
-#sentiWordnet=polarity.loadSentiFull('../resources/sentiWordnetBig.csv')
-sentiWordnet=polarity.loadSentiWordnet('../resources/sentiWordnetBig.csv')
+afinn=polarity.loadAfinn('../resources/afinn.txt')
+#sentiWordnet=polarity.loadSentiWordnet('../resources/sentiWordnetBig.csv')
 emoticonDict=features.createEmoticonDictionary("../resources/emoticon.txt")
 
 print "Bulding unigram vector"
-positive=ngramGenerator.mostFreqList('../data/positive_processed.csv',1000)
-negative=ngramGenerator.mostFreqList('../data/negative_processed.csv',1000)
-neutral=ngramGenerator.mostFreqList('../data/neutral_processed.csv',1000)
+positive=ngramGenerator.mostFreqList('../data/used/positive1.csv',3000)
+negative=ngramGenerator.mostFreqList('../data/used/negative1.csv',3000)
+neutral=ngramGenerator.mostFreqList('../data/used/neutral1.csv',3000)
 
 
 total=positive+negative+neutral # total unigram vector
@@ -37,19 +37,19 @@ for w in total:
         while (count>0):
             count=count-1
             total.remove(w)
+# equalize unigrams sizes 
+m=min([len(positive),len(negative),len(neutral)])       
 
+positive=positive[0:m-1]
+negative=negative[0:m-1]
+neutral=neutral[0:m-1]
 
  
-def mapTweet(tweet,sentiWordnet,emoDict,unigram,slangs):
+def mapTweet(tweet,afinn,emoDict,positive,negative,neutral,slangs):
     out=[]
     line=preprocessing.processTweet(tweet,stopWords,slangs)
-   
-    p=polarity.posPolarity(line,sentiWordnet)
-   
-    out.append(float(p[0])-float(p[1])) # aggregate polarity for pos neg
-    out.extend(p[7:]) # frequencies of pos 
-    pos=polarity.posFreq(line,sentiWordnet)
-    out.extend([float(pos['v']),float(pos['n']),float(pos['a']),float(pos['r'])]) # pos counts inside the tweet
+    p=polarity.afinnPolarity(line,afinn)
+    out.append(p)
     out.append(float(features.emoticonScore(line,emoDict))) # emo aggregate score be careful to modify weights
     out.append(float(len(features.hashtagWords(line))/40)) # number of hashtagged words
     out.append(float(len(line)/140)) # for the length
@@ -59,12 +59,10 @@ def mapTweet(tweet,sentiWordnet,emoDict,unigram,slangs):
     out.append(float((features.questionTest(line))))
     out.append(float(line.count('?')/140))
     out.append(float(features.freqCapital(line)))
-    for w in unigram:  # unigram
-            if (w in line.split()):
-                out.append(float(1))
-            else:
-                out.append(float(0))
+    u=features.scoreUnigram(line,positive,negative,neutral)
+    out.extend(u)
     return out
+
 # load matrix
 def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
     vectors=[]
@@ -76,7 +74,7 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
     line=f.readline()
     while line:
         kpos=kpos+1
-        z=mapTweet(line,sentiWordnet,emoticonDict,total,slangs)
+        z=mapTweet(line,afinn,emoticonDict,positive,negative,neutral,slangs)
         vectors.append(z)
         labels.append(float(poslabel))
         line=f.readline()
@@ -87,7 +85,7 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
     line=f.readline()
     while line:
         kneu=kneu+1
-        z=mapTweet(line,sentiWordnet,emoticonDict,total,slangs)
+        z=mapTweet(line,afinn,emoticonDict,positive,negative,neutral,slangs)
         vectors.append(z)
         labels.append(float(neulabel))
         line=f.readline()
@@ -98,7 +96,7 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
     line=f.readline()
     while line:
         kneg=kneg+1
-        z=mapTweet(line,sentiWordnet,emoticonDict,total,slangs)
+        z=mapTweet(line,afinn,emoticonDict,positive,negative,neutral,slangs)
         vectors.append(z)
         labels.append(float(neglabel))
         line=f.readline()
@@ -158,10 +156,9 @@ def trainModel(X,Y,n): # number of neighbors
 
 # predict tweet class
 def predict(tweet,model): # test a tweet against a built model 
-    z=mapTweet(tweet,sentiWordnet,emoticonDict,total,slangs) # mapping
+    z=mapTweet(tweet,afinn,emoticonDict,positive,negative,neutral,slangs) # mapping
     z_scaled=scaler.transform(z)
     z=normalizer.transform([z_scaled])
-    z=selector.transform(z) # feature selection
     z=z[0].tolist()
     return model.predict([z]).tolist() # transform nympy array to list 
 
@@ -176,7 +173,7 @@ def loadTest(filename): # function to load test file in the csv format : sentime
         s=float(l[0][1:])
         tweet=l[5][:-1]
 
-        z=mapTweet(tweet,sentiWordnet,emoticonDict,total,slangs)
+        z=mapTweet(tweet,afinn,emoticonDict,positive,negative,neutral,slangs)
         z_scaled=scaler.transform(z)
         z=normalizer.transform([z_scaled])
         z=z[0].tolist()
@@ -209,9 +206,20 @@ def predictFile(filename,knn_model): # function to load test file in the csv for
 def testModel(vectors,labels,model): # for a given set of labelled vectors calculate model labels and give accuract
     a=0 # wrong classified vectors
     newLabels=model.predict(vectors).tolist()
+    mispos=0
+    misneg=0
+    misneu=0
     for i in range(0,len(newLabels)):
+        if labels[i] == 4.0 and newLabels[i]!=labels[i]:
+            mispos+=1
+        if labels[i] == 2.0 and newLabels[i]!=labels[i]:
+            misneu+=1
+        if labels[i] == 0.0 and newLabels[i]!=labels[i]:
+            misneg+=1
+
         if newLabels[i]!=labels[i]:
             a=a+1
+    print "mispos : %d, misneu : %d, misneg : %d" %(mispos,misneu,misneg)
     if len(labels)==0:
         return 0.0
     else:
@@ -220,8 +228,8 @@ def testModel(vectors,labels,model): # for a given set of labelled vectors calcu
 
 # loading training data
 print "Loading training data"
-#X,Y=loadMatrix('../data/positive_processed.csv','../data/neutral_processed.csv','../data/negative_processed.csv','4','2','0')
-X,Y=loadMatrix('../data/small_positive_processed.csv','../data/small_neutral_processed.csv','../data/small_negative_processed.csv','4','2','0')
+X,Y=loadMatrix('../data/used/positive1.csv','../data/used/neutral1.csv','../data/used/negative1.csv','4','2','0')
+#X,Y=loadMatrix('../data/small_positive_processed.csv','../data/small_neutral_processed.csv','../data/small_negative_processed.csv','4','2','0')
 
 # features standardization 
 X_scaled=pr.scale(np.array(X))
@@ -245,7 +253,7 @@ y=np.array(Y)
 N_NEIGHBORS=1
 ACC=0.0
 iter=0
-for k in range(1,10):
+for k in range(10,16):
     iter=iter+1
     clf = neighbors.KNeighborsClassifier(k)
     scores = cross_validation.cross_val_score(clf, x, y, cv=5)
@@ -268,8 +276,8 @@ MODEL=trainModel(X,Y,N_NEIGHBORS) # 3nn
 
 print "Model Built . Testing ..."
 # uncomment to see performance over test data set
-#V,L=loadTest('../data/test_dataset.csv')
-V,L=loadTest('../data/small_test_dataset.csv')
+V,L=loadTest('../data/test_dataset.csv')
+#V,L=loadTest('../data/small_test_dataset.csv')
 
 print "Classification done : Performance over test dataset : "+str(testModel(V,L,MODEL))
 

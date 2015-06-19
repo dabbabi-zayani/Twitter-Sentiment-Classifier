@@ -4,7 +4,6 @@ from sklearn import svm
 from sklearn import cross_validation
 from sklearn import preprocessing as pr
 
-from sklearn.feature_selection import SelectKBest, f_classif # for features selection
 
 
 import numpy as np
@@ -59,8 +58,6 @@ def mapTweet(tweet,afinn,emoDict,positive,negative,neutral,slangs):
     line=preprocessing.processTweet(tweet,stopWords,slangs)
     p=polarity.afinnPolarity(line,afinn)
     out.append(p)
-#    p=polarity.posPolarity(line,sentiWordnet)
-#    out.extend([p[0]-p[1]]) # aggregate polsarity pos - negative
     out.append(float(features.emoticonScore(line,emoDict))) # emo aggregate score be careful to modify weights
     out.append(float(len(features.hashtagWords(line))/40)) # number of hashtagged words
     out.append(float(len(line)/140)) # for the length
@@ -70,7 +67,7 @@ def mapTweet(tweet,afinn,emoDict,positive,negative,neutral,slangs):
     out.append(float((features.questionTest(line))))
     out.append(float(line.count('?')/140))
     out.append(float(features.freqCapital(line)))
-    u=features.scoreUnigram(tweet,positive,negative,neutral)
+    u=features.scoreUnigram(line,positive,negative,neutral)
     out.extend(u)
     return out
 # load matrix
@@ -180,9 +177,21 @@ def loadTest(filename): # function to load test file in the csv format : sentime
 def testModel(vectors,labels,model): # for a given set of labelled vectors calculate model labels and give accuract
     a=0 # wrong classified vectors
     newLabels=model.predict(vectors).tolist()
+    mispos=0
+    misneg=0
+    misneu=0
     for i in range(0,len(newLabels)):
+        if labels[i] == 4.0 and newLabels[i]!=labels[i]:
+            mispos+=1
+        if labels[i] == 2.0 and newLabels[i]!=labels[i]:
+            misneu+=1
+        if labels[i] == 0.0 and newLabels[i]!=labels[i]:
+            misneg+=1
         if newLabels[i]!=labels[i]:
             a=a+1
+
+    print "mispos : %d, misneu : %d, misneg : %d" %(mispos,misneu,misneg)
+
     if len(labels)==0:
         return 0.0
     else:

@@ -4,7 +4,6 @@ from sklearn import svm
 from sklearn import cross_validation
 from sklearn import preprocessing as pr
 
-from sklearn.feature_selection import SelectKBest, f_classif # for features selection
 
 
 import numpy as np
@@ -19,40 +18,47 @@ import preprocessing
 N_NEIGHBORS=10  # number of neighbors for KNN
 KERNEL_FUNCTION='linear'  # kernel function for SVM
 C_PARAMETER=0.2
-UNIGRAM_SIZE=1000
+UNIGRAM_SIZE=3000
 
 
 
 print "Initializing dictionnaries"
 stopWords = preprocessing.getStopWordList('../resources/stopWords.txt')
 slangs = preprocessing.loadSlangs('../resources/internetSlangs.txt')
-#sentiWordnet=polarity.loadSentiFull('../resources/sentiWordnetBig.csv')
-sentiWordnet=polarity.loadSentiWordnet('../resources/sentiWordnetBig.csv')
-
+afinn=polarity.loadAfinn('../resources/afinn.txt')
 emoticonDict=features.createEmoticonDictionary("../resources/emoticon.txt")
 
 print "Bulding unigram vector"
-positive=ngramGenerator.mostFreqList('../data/positive_processed.csv',UNIGRAM_SIZE) # add as needed 
-negative=ngramGenerator.mostFreqList('../data/negative_processed.csv',UNIGRAM_SIZE)
-neutral=ngramGenerator.mostFreqList('../data/neutral_processed.csv',UNIGRAM_SIZE)
+positive=ngramGenerator.mostFreqList('../data/used/positive1.csv',UNIGRAM_SIZE) # add as needed 
+negative=ngramGenerator.mostFreqList('../data/used/negative1.csv',UNIGRAM_SIZE)
+neutral=ngramGenerator.mostFreqList('../data/used/neutral1.csv',UNIGRAM_SIZE)
 
 
-total=positive+negative+neutral # total unigram vector
-#print len(total)
-#total=[]
+for w in positive:
+    if w in negative+neutral : 
+        positive.remove(w)
+
+for w in negative:
+    if w in positive+neutral : 
+        negative.remove(w)
+
+for w in neutral:
+    if w in negative+positive : 
+        neutral.remove(w)
+
+# equalize unigrams sizes 
+m=min([len(positive),len(negative),len(neutral)])       
+
+positive=positive[0:m-1]
+negative=negative[0:m-1]
+neutral=neutral[0:m-1]
+
  
-def mapTweet(tweet,sentiWordnet,emoDict,unigram,slangs):
+def mapTweet(tweet,afinn,emoDict,positive,negative,neutral,slangs):
     out=[]
     line=preprocessing.processTweet(tweet,stopWords,slangs)
-   
-#    p=polarity.polarity(line,sentiWordnet)
-    p=polarity.posPolarity(line,sentiWordnet)
-   
-    out.extend([float(p[0]),float(p[1]),float(p[2])]) # aggregate polarity for pos neg and neutral here neutral is stripped
-#    pos=polarity.posFreq(line,sentiWordnet)
-    out.extend(p[7:]) # frequencies of pos 
-
-#    out.extend([float(pos['v']),float(pos['n']),float(pos['a']),float(pos['r'])]) # pos counts inside the tweet
+    p=polarity.afinnPolarity(line,afinn)
+    out.append(p)
     out.append(float(features.emoticonScore(line,emoDict))) # emo aggregate score be careful to modify weights
     out.append(float(len(features.hashtagWords(line))/40)) # number of hashtagged words
     out.append(float(len(line)/140)) # for the length
@@ -62,25 +68,19 @@ def mapTweet(tweet,sentiWordnet,emoDict,unigram,slangs):
     out.append(float((features.questionTest(line))))
     out.append(float(line.count('?')/140))
     out.append(float(features.freqCapital(line)))
-    for w in unigram:  # unigram
-            if (w in line.split()):
-                out.append(float(1))
-            else:
-                out.append(float(0))
+    u=features.scoreUnigram(line,positive,negative,neutral)
+    out.extend(u)
     return out
 
 # 
-def modiKNN(k,z): # aggregate negative and positive scores for knn
-    l=z[0:k]
-    l.append(z[k]+z[k+1])
-    l.extend(z[k+2:])
+def modiKNN(z): # aggregate negative and positive scores for knn
+    l=z[0:len(z)-3]
+    l.append((z[len(z)-3]+z[len(z)-2])/2) # pos and neg 
+    l.append(z[len(z)-1]) # neutral score 
     return l
 
-def modiSVM(k,z): # remove neutral polarity score 
-    l=z[0:k]
-    l.extend(z[k+1:])
-    if (len(l)>UNIGRAM_SIZE):
-        l=l[:-UNIGRAM_SIZE] # remove neutral unigram words 
+def modiSVM(z): # remove neutral polarity score 
+    l=z[0:len(z)-1]
     return l
 
 # load matrix
@@ -91,37 +91,46 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
     kpos=0
     kneg=0
     kneu=0
-    
     line=f.readline()
     while line:
-        kpos=kpos+1
-        z=mapTweet(line,sentiWordnet,emoticonDict,total,slangs)
-        vectors.append(z)
-        labels.append(float(poslabel))
+        
+        try:
+            kpos+=1
+            z=mapTweet(line,afinn,emoticonDict,positive,negative,neutral,slangs)
+            vectors.append(z)
+            labels.append(float(poslabel))
+        except:
+            None
         line=f.readline()
-        print str(kpos/61)+"% Loading..."
+        print str(kpos)+"positive lines loaded : "+str(z)
     f.close()
     
     f=open(neufilename,'r')
     line=f.readline()
     while line:
-        kneu=kneu+1
-        z=mapTweet(line,sentiWordnet,emoticonDict,total,slangs)
-        vectors.append(z)
-        labels.append(float(neulabel))
+        try:
+            kneu=kneu+1
+            z=mapTweet(line,afinn,emoticonDict,positive,negative,neutral,slangs)
+            vectors.append(z)
+            labels.append(float(neulabel))
+        except:
+            None
         line=f.readline()
-        print str((kneu+2000)/61)+"% Loading..."
+        print str(kneu)+"neutral lines loaded : "+str(z)
     f.close()
     
     f=open(negfilename,'r')
     line=f.readline()
     while line:
-        kneg=kneg+1
-        z=mapTweet(line,sentiWordnet,emoticonDict,total,slangs)
-        vectors.append(z)
-        labels.append(float(neglabel))
+        try:
+            kneg=kneg+1
+            z=mapTweet(line,afinn,emoticonDict,positive,negative,neutral,slangs)
+            vectors.append(z)
+            labels.append(float(neglabel))
+        except:
+            None
         line=f.readline()
-        print str((kneg+4000)/61)+"% Loading..."
+        print str(kneg)+"negative lines loaded : "+str(z)
     f.close()
     return vectors,labels
 
@@ -137,23 +146,23 @@ def trainSVM(X,Y,knel):
     return clf
 
 def predictOneKNN(tweet,model,scaler,normalizer): # test a tweet against a built model KNN or SVM not both 
-    z=mapTweet(tweet,sentiWordnet,emoticonDict,total,slangs) # mapping
-    z=modiKNN(0,z)
+    z=mapTweet(tweet,afinn,emoticonDict,positive,negative,neutral,slangs) # mapping
+    z=modiKNN(z)
     z_scaled=scaler.transform(z)
     z=normalizer.transform([z_scaled])
     z=z[0].tolist()
     return float(model.predict([z]).tolist()[0]) # transform nympy array to list 
 
 def predictOneSVM(tweet,model,scaler,normalizer): # test a tweet against a built model KNN or SVM not both sdandardizer normalizer
-    z=mapTweet(tweet,sentiWordnet,emoticonDict,total,slangs) # mapping
-    z=modiSVM(2,z)
+    z=mapTweet(tweet,afinn,emoticonDict,positive,negative,neutral,slangs) # mapping
+    z=modiSVM(z)
     z_scaled=scaler.transform(z)
     z=normalizer.transform([z_scaled])
     z=z[0].tolist()
     return float(model.predict([z]).tolist()[0]) # transform nympy array to list 
 
 def predictTwo(tweet,knn_model,svm_model): # perform two step classification : KNN then SVM
-    z=mapTweet(tweet,sentiWordnet,emoticonDict,total,slangs) # mapping
+    z=mapTweet(tweet,afinn,emoticonDict,positive,negative,neutral,slangs) # mapping
     obj=float(predictOneKNN(tweet,knn_model,s1,n1))
     if obj==0.0: # neutral
         return 2.0
@@ -164,7 +173,7 @@ def predictTwo(tweet,knn_model,svm_model): # perform two step classification : K
 def predictVector(z,knn_model,svm_model,s1,n1,s2,n2): # from a vector predict label using hybrid, to use for cross validation
     result=[]
     for x in z:
-        x1=modiKNN(0,x)
+        x1=modiKNN(x)
         x1_scaled=s1.transform(x1)
         x1=n1.transform([x1_scaled])
         x1=x1[0].tolist()
@@ -172,7 +181,7 @@ def predictVector(z,knn_model,svm_model,s1,n1,s2,n2): # from a vector predict la
         if p1==0:
             result.append(2.0)
         else:
-            x2=modiSVM(2,x)
+            x2=modiSVM(x)
             x2_scaled=s2.transform(x2)
             x2=n2.transform([x2_scaled])
             x2=x2[0].tolist()
@@ -202,6 +211,10 @@ def testFile(filename,knn_model,svm_model): # function to load test file in the 
     line=f.readline()
     labels=[]
     newLabels=[]
+    mispos=0
+    misneg=0
+    misneu=0
+
     p=0 # precision
     while line:
         l=line[:-1].split(r'","')
@@ -209,6 +222,12 @@ def testFile(filename,knn_model,svm_model): # function to load test file in the 
         tweet=l[5][:-1]
         nl=predictTwo(tweet,knn_model,svm_model)
         newLabels.append(nl)
+        if s == 4.0 and nl!=s:
+            mispos+=1
+        if s == 2.0 and nl!=s:
+            misneu+=1
+        if s == 0.0 and nl!=s:
+            misneg+=1
         if nl != s:
             p=p+1
     
@@ -222,6 +241,8 @@ def testFile(filename,knn_model,svm_model): # function to load test file in the 
     fo.close()
     print "Tweets in test file are classified . The result is in "+filename+".result"
     print "Accuracy over test file is : "+str(p)   # for now 
+    print "mispos : %d, misneu : %d, misneg : %d" %(mispos,misneu,misneg)
+
 
 # 5 fold cross validation test
 def validateHybrid(X,Y,n,knel,c):
@@ -242,8 +263,7 @@ def validateHybrid(X,Y,n,knel,c):
     scores=np.array(scores)
 
     print("Accuracy of the hybrid model using 5 fold cross validation : %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))# Actual testing 
-
-
+    return scores.mean()
 
 
 
@@ -263,7 +283,7 @@ def buildHybrid(X,Y,n,knel,c): # n for neighbors, knel for kernel function
             Y_KNN.append(1.0) # for subjective
 
     for z in X:
-        X_KNN.append(modiKNN(0,z))
+        X_KNN.append(modiKNN(z))
     
     # features standardization 
     X_KNN_scaled=pr.scale(np.array(X_KNN))
@@ -286,7 +306,7 @@ def buildHybrid(X,Y,n,knel,c): # n for neighbors, knel for kernel function
 
     for i in range(0,len(Y)):
         if (Y[i] != 2.0): # no neutral in the svm model
-            X_SVM.append(modiSVM(2,X[i]))
+            X_SVM.append(modiSVM(X[i]))
             Y_SVM.append(Y[i])
 
 
@@ -313,7 +333,7 @@ def buildHybrid(X,Y,n,knel,c): # n for neighbors, knel for kernel function
 
 # loading training data
 print "Loading training data"
-X,Y=loadMatrix('../data/positive_processed.csv','../data/neutral_processed.csv','../data/negative_processed.csv','4','2','0')
+X,Y=loadMatrix('../data/used/positive1.csv','../data/used/neutral1.csv','../data/used/negative1.csv','4','2','0')
 #X,Y=loadMatrix('../data/small_positive_processed.csv','../data/small_neutral_processed.csv','../data/small_negative_processed.csv','4','2','0')
 
 # features standardization 
@@ -330,8 +350,21 @@ X=X.tolist()
 
 
 # validation step 
-print "Performing 5 fold cross validation on the model "
-validateHybrid(X,Y,N_NEIGHBORS,KERNEL_FUNCTION,C_PARAMETER)
+print "Optimizing "
+C=[0.1*i for i in range(1,4)]
+N=[i for i in range(1,2)]
+ACC=0.0
+best_acc=0.0
+iter=0
+for c in C:
+    for n in N:
+        print "C parameter : %f, Neighbors %d" %(c,n)
+        ACC=validateHybrid(X,Y,n,KERNEL_FUNCTION,c)
+        if (ACC > best_acc):
+            N_NEIGHBORS=n
+            C_PARAMETER=c
+            best_acc=ACC
+
 # Building Model
 print "Initializing model ..."
 KNN_MODEL,SVM_MODEL,s1,n1,s2,n2=buildHybrid(X,Y,N_NEIGHBORS,KERNEL_FUNCTION,C_PARAMETER)
