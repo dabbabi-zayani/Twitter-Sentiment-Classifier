@@ -223,31 +223,23 @@ def testFile(filename,knn_model,svm_model): # function to load test file in the 
         tweet=l[5][:-1]
         nl=predictTwo(tweet,knn_model,svm_model)
         newLabels.append(nl)
-        if s == 4.0 and nl!=s:
-            mispos+=1
-        if s == 2.0 and nl!=s:
-            misneu+=1
-        if s == 0.0 and nl!=s:
-            misneg+=1
-        if nl != s:
-            p=p+1
-    
         labels.append(s)
         fo.write("new label :"+str(nl)+" old label :"+str(s)+" tweet : "+tweet+'\n')
         line=f.readline()
-    if (len(labels) != 0):
-        p=p/len(labels)
-        p=1-p
     f.close()
     fo.close()
+    acc=metrics.accuracy_score(labels,newLabels)
+    pre=metrics.precision_score(labels,newLabels)
     print "Tweets in test file are classified . The result is in "+filename+".result"
-    print "Accuracy over test file is : "+str(p)   # for now 
-    print "mispos : %d, misneu : %d, misneg : %d" %(mispos,misneu,misneg)
+
+    print "average accuracy over test dataset : %.2f" %(acc)
+    print "average precision over test dataset : %.2f" %(pre)
 
 
 # 5 fold cross validation test
 def validateHybrid(X,Y,n,knel,c):
     scores=[] # list accuracy values for each fold
+    precisions=[]
     #folds=[k*int(len(X)/5) for k in range(1,5)]
     for k in range(1,6):
         err=0 #aggregate error 
@@ -257,12 +249,20 @@ def validateHybrid(X,Y,n,knel,c):
         Y_train=Y[:(k-1)*int(len(X)/5)]+Y[(k)*int(len(X)/5):]
         KNN_MODEL,SVM_MODEL,s1,n1,s2,n2=buildHybrid(X_train,Y_train,n,knel,c)
         z=predictVector(X_test,KNN_MODEL,SVM_MODEL,s1,n1,s2,n2)
-        
-        scores.append(metrics.accuracy_score(Y_test,np.array(z)))
+        try:
+            acc=metrics.accuracy_score(Y_test,np.array(z))
+            pre=metrics.precision_score(Y_test,np.array(z))
+            scores.append(acc)
+            precisions.append(pre)
+        except:
+            None
     scores=np.array(scores)
+    precisions=np.array(precisions)
 
     print("Accuracy of the hybrid model using 5 fold cross validation : %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))# Actual testing 
-    return scores.mean()
+    print("Precision of the hybrid model using 5 fold cross validation : %0.2f (+/- %0.2f)" % (precisions.mean(), precisions.std() * 2))# Actual testing 
+
+    return scores.mean(),precisions.mean()
 
 
 
@@ -350,19 +350,22 @@ X=X.tolist()
 
 # validation step 
 print "Optimizing "
-C=[0.001*i for i in range(1,11)]
-N=[i for i in range(1,6)]
+C=[0.1*i for i in range(1,2)]
+N=[i for i in range(1,2)]
 ACC=0.0
+PRE=0.0
 best_acc=0.0
+best_pre=0.0
 iter=0
 for c in C:
     for n in N:
         print "C parameter : %f, Neighbors %d" %(c,n)
-        ACC=validateHybrid(X,Y,n,KERNEL_FUNCTION,c)
-        if (ACC > best_acc):
+        ACC, PRE=validateHybrid(X,Y,n,KERNEL_FUNCTION,c)
+        if (ACC > best_acc and PRE > best_pre):
             N_NEIGHBORS=n
             C_PARAMETER=c
             best_acc=ACC
+            best_pre=PRE
 
 # Building Model
 print "Initializing model ..."
@@ -387,4 +390,3 @@ while user_input!='q':
         user_input=raw_input("Write a tweet to test or a file path for bulk classification . press q to quit\n")
 
 # the end !
-
