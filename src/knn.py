@@ -258,9 +258,13 @@ for k in range(1,11):
 # cross validation 
 #N_NEIGHBORS=10
 clf = neighbors.KNeighborsClassifier(N_NEIGHBORS)
-scores = cross_validation.cross_val_score(clf, x, y, cv=5)
+scores = cross_validation.cross_val_score(clf, x, y, cv=5,scoring='accuracy')
+precisions=cross_validation.cross_val_score(clf, x, y, cv=5,scoring='precision')
+
+print "Optimal number of neighbors : "+str(N_NEIGHBORS)
 print("Accuracy of the model using 5 fold cross validation : %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))# Actual testing 
-print "n chosen : "+str(N_NEIGHBORS)
+print("Precision of the model using 5 fold cross validation : %0.2f (+/- %0.2f)" % (precisions.mean(), precisions.std() * 2))# Actual testing 
+
 
 # Actual testing 
 print "Building model"

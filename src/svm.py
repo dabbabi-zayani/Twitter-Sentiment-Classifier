@@ -3,6 +3,7 @@ from __future__ import division
 from sklearn import svm
 from sklearn import cross_validation
 from sklearn import preprocessing as pr
+from sklearn import metrics
 
 
 
@@ -177,25 +178,10 @@ def loadTest(filename): # function to load test file in the csv format : sentime
 def testModel(vectors,labels,model): # for a given set of labelled vectors calculate model labels and give accuract
     a=0 # wrong classified vectors
     newLabels=model.predict(vectors).tolist()
-    mispos=0
-    misneg=0
-    misneu=0
-    for i in range(0,len(newLabels)):
-        if labels[i] == 4.0 and newLabels[i]!=labels[i]:
-            mispos+=1
-        if labels[i] == 2.0 and newLabels[i]!=labels[i]:
-            misneu+=1
-        if labels[i] == 0.0 and newLabels[i]!=labels[i]:
-            misneg+=1
-        if newLabels[i]!=labels[i]:
-            a=a+1
-
-    print "mispos : %d, misneu : %d, misneg : %d" %(mispos,misneu,misneg)
-
-    if len(labels)==0:
-        return 0.0
-    else:
-        return 1-a/len(labels) # from future import dividion
+    acc=metrics.accuracy_score(labels,newLabels)
+    pre=metrics.precision_score(labels,newLabels)
+    print "average accuracy over test dataset : %.2f" %(acc)
+    print "average precision over test dataset : %.2f" %(pre)
 
 
 # loading training data
@@ -219,25 +205,31 @@ X=X.tolist()
 x=np.array(X)
 y=np.array(Y)
 KERNEL_FUNCTIONS=['linear']
-C=[0.1*i for i in range(1,11)]
+C=[0.001*i for i in range(1,11)]
 ACC=0.0
+PRE=0.0
 iter=0
 
 for knel in KERNEL_FUNCTIONS:
     for c in C:
 
         clf = svm.SVC(kernel=KERNEL_FUNCTION, C=c)
-        scores = cross_validation.cross_val_score(clf, x, y, cv=5)
-        if (scores.mean() > ACC):
+        scores = cross_validation.cross_val_score(clf, x, y, cv=5,scoring='accuracy')
+        precisions=cross_validation.cross_val_score(clf, x, y, cv=5,scoring='precision')
+        if (scores.mean() > ACC and precisions.mean() > PRE):
             ACC=scores.mean()
+            PRE=precisions.mean()
             KERNEL_FUNCTION=knel
             C_PARAMETER=c
         iter=iter+1
         print "iteration "+str(iter)+" : c parameter : "+str(c)+", kernel : "+str(knel)
-        #print scores # the precision for five iterations
         print("Accuracy of the model using 5 fold cross validation : %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))# Actual testing 
-print "best C : "+str(C_PARAMETER)
-print "best knel : "+KERNEL_FUNCTION
+        print("Precision of the model using 5 fold cross validation : %0.2f (+/- %0.2f)" % (precisions.mean(), precisions.std() * 2))# Actual testing 
+
+print "Optimal C : "+str(C_PARAMETER)
+print "Optimal kernel function  : "+KERNEL_FUNCTION
+print "Accurracy : "+str(ACC)
+print "Precision : "+str(PRE)
 
 
 print "Training model with optimized parameters"
@@ -250,7 +242,8 @@ print "Loading test data..."
 V,L=loadTest('../data/test_dataset.csv')
 #V,L=loadTest('../data/small_test_dataset.csv')
 
-print "Classification done : Performance over test dataset : "+str(testModel(V,L,MODEL))
+print "Classification done : Performance over test dataset : "
+testModel(V,L,MODEL)
 
 user_input=raw_input("Write a tweet to test or a file path for bulk classification with svm model. press q to quit\n")
 while user_input!='q':
