@@ -9,6 +9,6 @@ To use these algorithms you should install : sklearn 0.14 version (http://scikit
 <br />
 Emoticons dictionnary, Stop Words list, SentiWordnet 3.0.1  and a slang dictionnary are in the resources folder. <br />
 Training and testing datasets are in the data folder.  <br />
-Tha training dataset is collected SemEval challenge ( http://alt.qcri.org/semeval2014/task9/index.php?id=data-and-tools ) and the testing dataset is from STS-Gold (http://cs.stanford.edu/people/alecmgo/trainingandtestdata.zip)
+Tha training dataset is collected SemEval challenge ( http://alt.qcri.org/semeval2014/task9/index.php?id=data-and-tools ), STS gold and Sanders dataset. The testing dataset is from STS-Gold (http://cs.stanford.edu/people/alecmgo/trainingandtestdata.zip)
 <br />
-Comments are appreciated . Thank you .  <br />
+Thank you .  <br />
