@@ -351,7 +351,7 @@ X=X.tolist()
 # validation step 
 print "Optimizing "
 C=[0.001*i for i in range(1,11)]
-N=[i for i in range(1,6)]
+N=[i for i in range(1,10)]
 ACC=0.0
 best_acc=0.0
 iter=0
@@ -364,6 +364,8 @@ for c in C:
             C_PARAMETER=c
             best_acc=ACC
 
+print "Model optimized "
+print "best c : %f, best n : %d , best accuracy : %f" %(C_PARAMETER,N_NEIGHBORS,best_acc)
 # Building Model
 print "Initializing model ..."
 KNN_MODEL,SVM_MODEL,s1,n1,s2,n2=buildHybrid(X,Y,N_NEIGHBORS,KERNEL_FUNCTION,C_PARAMETER)
