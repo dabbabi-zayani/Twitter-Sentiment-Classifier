@@ -282,6 +282,7 @@ user_input=raw_input("Write a tweet to test or a file path for bulk classificati
 while user_input!='q':
     try:
         predictFile(user_input,MODEL)
+        user_input=raw_input("Write a tweet to test or a file path for bulk classification . press q to quit\n")
     except:
         print "sentiment : "+str(predict(user_input,MODEL))
         user_input=raw_input("Write a tweet to test or a file path for bulk classification . press q to quit\n")

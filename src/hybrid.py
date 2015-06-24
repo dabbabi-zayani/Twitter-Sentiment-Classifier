@@ -350,7 +350,7 @@ X=X.tolist()
 
 # validation step 
 print "Optimizing "
-C=[0.001*i for i in range(1,11)]
+C=[0.01*i for i in range(1,50)]
 N=[i for i in range(1,10)]
 ACC=0.0
 best_acc=0.0
@@ -384,6 +384,7 @@ user_input=raw_input("Write a tweet to test or a file path for bulk classificati
 while user_input!='q':
     try:
         predictFile(user_input,KNN_MODEL,SVM_MODEL)
+        user_input=raw_input("Write a tweet to test or a file path for bulk classification . press q to quit\n")
     except:
         print "sentiment : "+str(predictTwo(user_input,KNN_MODEL,SVM_MODEL))
         user_input=raw_input("Write a tweet to test or a file path for bulk classification . press q to quit\n")
