@@ -146,7 +146,7 @@ def predictFile(filename,svm_model): # function to load test file in the csv for
 
         nl=predict(tweet,svm_model)
     
-        fo.write(r'"'+str(nl)+r'","'+tweet+r'"\n')
+        fo.write(r'"'+str(nl)+r'","'+tweet+'"\n')
         line=f.readline()
    
     f.close()
@@ -205,7 +205,7 @@ X=X.tolist()
 x=np.array(X)
 y=np.array(Y)
 KERNEL_FUNCTIONS=['linear']
-C=[0.001*i for i in range(1,11)]
+C=[0.003*i for i in range(1,2)]
 ACC=0.0
 PRE=0.0
 iter=0
@@ -249,6 +249,7 @@ user_input=raw_input("Write a tweet to test or a file path for bulk classificati
 while user_input!='q':
     try:
         predictFile(user_input,MODEL)
+        user_input=raw_input("Write a tweet to test or a file path for bulk classification . press q to quit\n")
     except:
         print "sentiment : "+str(predict(user_input,MODEL))
         user_input=raw_input("Write a tweet to test or a file path for bulk classification . press q to quit\n")

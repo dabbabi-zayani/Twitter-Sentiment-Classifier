@@ -197,7 +197,7 @@ def predictFile(filename,knn_model): # function to load test file in the csv for
 
         nl=predict(tweet,knn_model)
     
-        fo.write(r'"'+str(nl)+r'","'+tweet+r'"\n')
+        fo.write(r'"'+str(nl)+r'","'+tweet+'"\n')
         line=f.readline()
    
     f.close()
