@@ -1,4 +1,6 @@
 # A twitter sentiment classifier based on Support Vector Machines and K nearest neighbors
+ As undestood from the title, this repository contains sources codes (src folder) , datasets (data folder) and useful resources for twitter sentiment analysis (resources folder).<br />
+The training dataset is split into 3 files containing a processed version of tweets in the three classes : positive (data/used/positive1.csv), negative (data/used/negative1.csv) and neutral (data/used/neutral1.csv) <br />
 In the src folder :<br />
 1) svm.py : svm classifier <br />
 2) knn.py : knn classifier <br />
