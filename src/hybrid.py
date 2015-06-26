@@ -384,9 +384,11 @@ user_input=raw_input("Write a tweet to test or a file path for bulk classificati
 while user_input!='q':
     try:
         predictFile(user_input,KNN_MODEL,SVM_MODEL)
+        print "labels are : 4.0 for positive, 2.0 for neutral and 0.0 for negative tweets"
         user_input=raw_input("Write a tweet to test or a file path for bulk classification . press q to quit\n")
     except:
         print "sentiment : "+str(predictTwo(user_input,KNN_MODEL,SVM_MODEL))
+        print "labels are : 4.0 for positive, 2.0 for neutral and 0.0 for negative tweets"
         user_input=raw_input("Write a tweet to test or a file path for bulk classification . press q to quit\n")
 
 # the end !
