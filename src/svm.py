@@ -135,16 +135,18 @@ def predict(tweet,model): # test a tweet against a built model
     z_scaled=scaler.transform(z)
     z=normalizer.transform([z_scaled])
     z=z[0].tolist()
-    return model.predict([z]).tolist() # transform nympy array to list 
+    return model.predict([z]).tolist()[0] # transform nympy array to list 
 
 def predictFile(filename,svm_model): # function to load test file in the csv format : sentiment,tweet 
     f=open(filename,'r')
     fo=open(filename+".result",'w')
+    fo.write('"auto label","tweet","anouar label","ziany label"') # header
     line=f.readline()
     while line:
         tweet=line[:-1]
 
         nl=predict(tweet,svm_model)
+        
     
         fo.write(r'"'+str(nl)+r'","'+tweet+'"\n')
         line=f.readline()
@@ -249,9 +251,11 @@ user_input=raw_input("Write a tweet to test or a file path for bulk classificati
 while user_input!='q':
     try:
         predictFile(user_input,MODEL)
+        print "labels are : 4.0 for positive, 2.0 for neutral and 0.0 for negative tweets"
         user_input=raw_input("Write a tweet to test or a file path for bulk classification . press q to quit\n")
     except:
         print "sentiment : "+str(predict(user_input,MODEL))
+        print "labels are : 4.0 for positive, 2.0 for neutral and 0.0 for negative tweets"
         user_input=raw_input("Write a tweet to test or a file path for bulk classification . press q to quit\n")
 
 # the end !
