@@ -235,7 +235,6 @@ def testModel(vectors,labels,model): # for a given set of labelled vectors calcu
 
 
 # loading training data
-print "Loading training data"
 X,Y=loadMatrix('../data/used/positive1.csv','../data/used/neutral1.csv','../data/used/negative1.csv','4','2','0')
 #X,Y=loadMatrix('../data/small_positive_processed.csv','../data/small_neutral_processed.csv','../data/small_negative_processed.csv','4','2','0')
 
