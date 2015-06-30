@@ -75,6 +75,7 @@ def mapTweet(tweet,afinn,emoDict,positive,negative,neutral,slangs):
 def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
     vectors=[]
     labels=[]
+    print "Loading training dataset..."
     f=open(posfilename,'r')
     kpos=0
     kneg=0
@@ -90,7 +91,7 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
         except:
             None
         line=f.readline()
-        print str(kpos)+"positive lines loaded : "+str(z)
+#        print str(kpos)+"positive lines loaded : "+str(z)
     f.close()
     
     f=open(neufilename,'r')
@@ -104,7 +105,7 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
         except:
             None
         line=f.readline()
-        print str(kneu)+"neutral lines loaded : "+str(z)
+#        print str(kneu)+"neutral lines loaded : "+str(z)
     f.close()
     
     f=open(negfilename,'r')
@@ -118,8 +119,9 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
         except:
             None
         line=f.readline()
-        print str(kneg)+"negative lines loaded : "+str(z)
+#        print str(kneg)+"negative lines loaded : "+str(z)
     f.close()
+    print "Loading done."
     return vectors,labels
 
 
@@ -176,6 +178,24 @@ def loadTest(filename): # function to load test file in the csv format : sentime
     f.close()
     return vectors,labels
 
+# write labelled  test dataset 
+def writeTest(filename,model): # function to load test file in the csv format : sentiment,tweet 
+    f=open(filename,'r')
+    line=f.readline()
+    fo=open(filename+".svm_result","w")
+    fo.write("old,tweet,new\n")
+    while line:
+        l=line[:-1].split(r'","')
+        s=float(l[0][1:])
+        tweet=l[5][:-1]
+        nl=predict(tweet,model)
+        fo.write(r'"'+str(s)+r'","'+tweet+r'","'+str(nl)+r'"'+"\n")
+        line=f.readline()
+#        print str(kneg)+"negative lines loaded"
+    f.close()
+    fo.close()
+    print "labelled test dataset is stores in : "+str(filename)+".svm_result"
+
 
 def testModel(vectors,labels,model): # for a given set of labelled vectors calculate model labels and give accuract
     a=0 # wrong classified vectors
@@ -207,7 +227,7 @@ X=X.tolist()
 x=np.array(X)
 y=np.array(Y)
 KERNEL_FUNCTIONS=['linear']
-C=[0.003*i for i in range(1,2)]
+C=[0.01*i for i in range(1,2)]
 ACC=0.0
 PRE=0.0
 iter=0
@@ -243,6 +263,9 @@ print "Training done !"
 print "Loading test data..."
 V,L=loadTest('../data/test_dataset.csv')
 #V,L=loadTest('../data/small_test_dataset.csv')
+
+# writ labelled test dataset 
+writeTest('../data/test_dataset.csv',MODEL)
 
 print "Classification done : Performance over test dataset : "
 testModel(V,L,MODEL)
