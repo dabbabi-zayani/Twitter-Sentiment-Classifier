@@ -23,7 +23,7 @@ To use these algorithms you should install : sklearn 0.14 version (http://scikit
 Running the classifiers
 -------
 Runnig any classifier of the mentioned above is done as by executing the classifier.py script as follow  : <br />
-Usage : python predictor.py <classifier> : possible classifiers are : svm, knn or hybrid<br />
+Usage : python predictor.py classifier_choice : possible classifiers are : svm, knn or hybrid<br />
 
 N.B : The class labels are real values and are as follow : positive : 4.0, negative : 0.0 and neutral 2.0 <br />
 
