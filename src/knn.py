@@ -68,6 +68,7 @@ def mapTweet(tweet,afinn,emoDict,positive,negative,neutral,slangs):
 def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
     vectors=[]
     labels=[]
+    print "Loading training dataset..."
     f=open(posfilename,'r')
     kpos=0
     kneg=0
@@ -79,7 +80,7 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
         vectors.append(z)
         labels.append(float(poslabel))
         line=f.readline()
-        print str(kpos)+"positive line loaded"+str(len(vectors))+" "+str(len(labels))
+#        print str(kpos)+"positive line loaded"+str(len(vectors))+" "+str(len(labels))
     f.close()
     
     f=open(neufilename,'r')
@@ -90,7 +91,7 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
         vectors.append(z)
         labels.append(float(neulabel))
         line=f.readline()
-        print str(kneu)+"neutral lines loaded"
+#        print str(kneu)+"neutral lines loaded"
     f.close()
     
     f=open(negfilename,'r')
@@ -101,8 +102,9 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
         vectors.append(z)
         labels.append(float(neglabel))
         line=f.readline()
-        print str(kneg)+"negative lines loaded"
+#        print str(kneg)+"negative lines loaded"
     f.close()
+    print "Loading done."
     return vectors,labels
 
 # WEIGHTING LIST of VECTORS
@@ -185,6 +187,24 @@ def loadTest(filename): # function to load test file in the csv format : sentime
     f.close()
     return vectors,labels
 
+# load test data set 
+def writeTest(filename,knn_model): # function to load test file in the csv format : sentiment,tweet 
+    f=open(filename,'r')
+    line=f.readline()
+    fo=open(filename+".knn_result","w")
+    fo.write("old,tweet,new\n")
+    while line:
+        l=line[:-1].split(r'","')
+        s=float(l[0][1:])
+        tweet=l[5][:-1]
+        nl=predict(tweet,knn_model)
+        fo.write(r'"'+str(s)+r'","'+tweet+r'","'+str(nl[0])+r'"'+"\n")
+        line=f.readline()
+#        print str(kneg)+"negative lines loaded"
+    f.close()
+    fo.close()
+    print "labelled test dataset is stores in : "+str(filename)+".knn_result"
+
 
 
 #def predictFile
@@ -242,7 +262,7 @@ N_NEIGHBORS=1
 ACC=0.0
 PR=0.0
 iter=0
-for k in range(1,11):
+for k in range(10,11):
     iter=iter+1
     clf = neighbors.KNeighborsClassifier(k)
     scores = cross_validation.cross_val_score(clf, x, y, cv=5,scoring='accuracy')
@@ -277,6 +297,9 @@ V,L=loadTest('../data/test_dataset.csv')
 
 print "Classification done : Performance over test dataset : "
 testModel(V,L,MODEL)
+
+# write new labelled test dataset
+writeTest('../data/test_dataset.csv',MODEL)
 
 user_input=raw_input("Write a tweet to test or a file path for bulk classification with knn model. press q to quit\n")
 while user_input!='q':
