@@ -88,6 +88,7 @@ def modiSVM(z): # remove neutral polarity score
 def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
     vectors=[]
     labels=[]
+    print "Loading training dataset..."
     f=open(posfilename,'r')
     kpos=0
     kneg=0
@@ -103,7 +104,7 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
         except:
             None
         line=f.readline()
-        print str(kpos)+"positive lines loaded : "+str(z)
+#        print str(kpos)+"positive lines loaded : "+str(z)
     f.close()
     
     f=open(neufilename,'r')
@@ -117,7 +118,7 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
         except:
             None
         line=f.readline()
-        print str(kneu)+"neutral lines loaded : "+str(z)
+#        print str(kneu)+"neutral lines loaded : "+str(z)
     f.close()
     
     f=open(negfilename,'r')
@@ -131,8 +132,9 @@ def loadMatrix(posfilename,neufilename,negfilename,poslabel,neulabel,neglabel):
         except:
             None
         line=f.readline()
-        print str(kneg)+"negative lines loaded : "+str(z)
+#        print str(kneg)+"negative lines loaded : "+str(z)
     f.close()
+    print "Loading done."
     return vectors,labels
 
 
@@ -208,7 +210,7 @@ def predictFile(filename,knn_model,svm_model): # function to load test file in t
 # Test dataset classification
 def testFile(filename,knn_model,svm_model): # function to load test file in the csv format : sentiment,tweet 
     f=open(filename,'r')
-    fo=open(filename+".result",'w')
+    fo=open(filename+".hybrid_result",'w')
     line=f.readline()
     labels=[]
     newLabels=[]
@@ -223,26 +225,20 @@ def testFile(filename,knn_model,svm_model): # function to load test file in the 
         tweet=l[5][:-1]
         nl=predictTwo(tweet,knn_model,svm_model)
         newLabels.append(nl)
-        if s == 4.0 and nl!=s:
-            mispos+=1
-        if s == 2.0 and nl!=s:
-            misneu+=1
-        if s == 0.0 and nl!=s:
-            misneg+=1
+        fo.write(r'"'+str(s)+r'","'+tweet+r'","'+str(nl)+r'"'+"\n")
+
         if nl != s:
             p=p+1
     
         labels.append(s)
-        fo.write("new label :"+str(nl)+" old label :"+str(s)+" tweet : "+tweet+'\n')
         line=f.readline()
     if (len(labels) != 0):
         p=p/len(labels)
         p=1-p
     f.close()
     fo.close()
-    print "Tweets in test file are classified . The result is in "+filename+".result"
+    print "Tweets in test file are classified . The result is in "+filename+".hybrid_result"
     print "Accuracy over test file is : "+str(p)   # for now 
-    print "mispos : %d, misneu : %d, misneg : %d" %(mispos,misneu,misneg)
 
 
 # 5 fold cross validation test
@@ -350,8 +346,8 @@ X=X.tolist()
 
 # validation step 
 print "Optimizing "
-C=[0.01*i for i in range(1,50)]
-N=[i for i in range(1,10)]
+C=[0.01*i for i in range(1,2)]
+N=[i for i in range(10,11)]
 ACC=0.0
 best_acc=0.0
 iter=0
